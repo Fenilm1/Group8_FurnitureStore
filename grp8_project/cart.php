@@ -55,7 +55,7 @@ if (isset($_GET['remove'])) {
                 $totalPrice = 0;
                 foreach ($_SESSION['cart'] as $productId => $quantity) {
                     $product->id = $productId;
-                    $productDetails = $product->getProductById(); // Using getProductById to fetch product details
+                    $productDetails = $product->getProductById($productId); // Using getProductById to fetch product details
                     if ($productDetails) {
                         $itemTotal = $productDetails['price'] * $quantity;
                         $totalPrice += $itemTotal;
