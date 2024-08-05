@@ -12,7 +12,7 @@ $product = new Product($db);
 
 if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['id'])) {
     $product->id = $_GET['id'];
-    $productData = $product->getProductById();
+    $productData = $product->getProductById(id: $product->id);
 
     if (!$productData) {
         $_SESSION['error'] = "Product not found.";
