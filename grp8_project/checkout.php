@@ -4,6 +4,8 @@ include_once 'includes/header.php';
 include_once 'includes/nav.php';
 include_once 'classes/Database.php';
 include_once 'classes/User.php';
+include_once 'classes/Cart.php';
+include_once 'classes/Order.php';
 
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     header("Location: login.php");
@@ -12,8 +14,13 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
 
 $database = new Database();
 $db = $database->getConnection();
-
+$cart = new Cart();
+$order = new Order($db);
 $errorMessages = [];
+
+$user_id = $_SESSION['user_id'];
+$cartItems = array();
+$total = 0;
 
 // List of Canadian province codes
 $provinces = [
@@ -32,6 +39,23 @@ $provinces = [
     'YT' => 'Yukon'
 ];
 
+// Fetch product details from session cart
+foreach ($cart->getCartItems() as $productId => $quantity) {
+    $product = new Product($db);
+    $product->id = $productId;
+    $productDetails = $product->getProductById($productId);
+
+    if ($productDetails) {
+        $cartItems[] = array(
+            'product_id' => $productId,
+            'name' => $productDetails['name'],
+            'price' => $productDetails['price'],
+            'quantity' => $quantity,
+        );
+        $total += $productDetails['price'] * $quantity;
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Sanitize and validate the input data
     $streetAddress = filter_input(INPUT_POST, 'street_address', FILTER_SANITIZE_STRING);
@@ -44,6 +68,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $cardNumber = filter_input(INPUT_POST, 'card_number', FILTER_SANITIZE_STRING);
     $cardExpiry = filter_input(INPUT_POST, 'card_expiry', FILTER_SANITIZE_STRING);
     $cardCVV = filter_input(INPUT_POST, 'card_cvv', FILTER_SANITIZE_STRING);
+
+    // Store order
+    $orderId = $order->createOrder($user_id, $total, $address);
+
+    if ($orderId) {
+        // Store order items
+        foreach ($cartItems as $item) {
+            $order->addOrderItem($orderId, $item['product_id'], $item['quantity'], $item['price']);
+        }
+
+        // Clear cart
+        $cart->clearCart();
+
+        // Store order data in session and local storage
+        $_SESSION['order'] = $orderId;
+        echo "<script>localStorage.setItem('order', JSON.stringify({id: $orderId, total: $total}));</script>";
+
 
     // Validate each field
     if (empty($streetAddress)) {
@@ -101,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         header("Location: invoice.php");
         exit();
     }
-}
+}}
 ?>
 
 <div class="container mt-5">
@@ -111,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="form-group">
             <label for="street_address">Street Address:</label>
             <input type="text" class="form-control" id="street_address" name="street_address" required value="<?php echo isset($_POST['street_address']) ? htmlspecialchars($_POST['street_address']) : ''; ?>">
-            <?php if (isset($errorMessages['street_address'])): ?>
+            <?php if (isset($errorMessages['street_address'])) : ?>
                 <small class="text-danger"><?php echo $errorMessages['street_address']; ?></small>
             <?php endif; ?>
         </div>
@@ -119,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="form-group">
             <label for="city">City:</label>
             <input type="text" class="form-control" id="city" name="city" required value="<?php echo isset($_POST['city']) ? htmlspecialchars($_POST['city']) : ''; ?>">
-            <?php if (isset($errorMessages['city'])): ?>
+            <?php if (isset($errorMessages['city'])) : ?>
                 <small class="text-danger"><?php echo $errorMessages['city']; ?></small>
             <?php endif; ?>
         </div>
@@ -127,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="form-group">
             <label for="postal_code">Postal Code:</label>
             <input type="text" class="form-control" id="postal_code" name="postal_code" required value="<?php echo isset($_POST['postal_code']) ? htmlspecialchars($_POST['postal_code']) : ''; ?>">
-            <?php if (isset($errorMessages['postal_code'])): ?>
+            <?php if (isset($errorMessages['postal_code'])) : ?>
                 <small class="text-danger"><?php echo $errorMessages['postal_code']; ?></small>
             <?php endif; ?>
         </div>
@@ -136,11 +177,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <label for="state">Province:</label>
             <select class="form-control" id="state" name="state" required>
                 <option value="">Select a province</option>
-                <?php foreach ($provinces as $code => $name): ?>
+                <?php foreach ($provinces as $code => $name) : ?>
                     <option value="<?php echo $code; ?>" <?php echo (isset($_POST['state']) && $_POST['state'] === $code) ? 'selected' : ''; ?>><?php echo $name; ?></option>
                 <?php endforeach; ?>
             </select>
-            <?php if (isset($errorMessages['state'])): ?>
+            <?php if (isset($errorMessages['state'])) : ?>
                 <small class="text-danger"><?php echo $errorMessages['state']; ?></small>
             <?php endif; ?>
         </div>
@@ -148,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="form-group">
             <label for="phone">Phone Number:</label>
             <input type="text" class="form-control" id="phone" name="phone" required value="<?php echo isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : ''; ?>">
-            <?php if (isset($errorMessages['phone'])): ?>
+            <?php if (isset($errorMessages['phone'])) : ?>
                 <small class="text-danger"><?php echo $errorMessages['phone']; ?></small>
             <?php endif; ?>
         </div>
@@ -156,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="form-group">
             <label for="email">Email:</label>
             <input type="email" class="form-control" id="email" name="email" required value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
-            <?php if (isset($errorMessages['email'])): ?>
+            <?php if (isset($errorMessages['email'])) : ?>
                 <small class="text-danger"><?php echo $errorMessages['email']; ?></small>
             <?php endif; ?>
         </div>
@@ -165,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="form-group">
             <label for="card_name">Cardholder's Name:</label>
             <input type="text" class="form-control" id="card_name" name="card_name" required value="<?php echo isset($_POST['card_name']) ? htmlspecialchars($_POST['card_name']) : ''; ?>">
-            <?php if (isset($errorMessages['card_name'])): ?>
+            <?php if (isset($errorMessages['card_name'])) : ?>
                 <small class="text-danger"><?php echo $errorMessages['card_name']; ?></small>
             <?php endif; ?>
         </div>
@@ -173,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="form-group">
             <label for="card_number">Card Number:</label>
             <input type="text" class="form-control" id="card_number" name="card_number" required value="<?php echo isset($_POST['card_number']) ? htmlspecialchars($_POST['card_number']) : ''; ?>">
-            <?php if (isset($errorMessages['card_number'])): ?>
+            <?php if (isset($errorMessages['card_number'])) : ?>
                 <small class="text-danger"><?php echo $errorMessages['card_number']; ?></small>
             <?php endif; ?>
         </div>
@@ -181,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="form-group">
             <label for="card_expiry">Expiry Date (MM/YY):</label>
             <input type="text" class="form-control" id="card_expiry" name="card_expiry" required value="<?php echo isset($_POST['card_expiry']) ? htmlspecialchars($_POST['card_expiry']) : ''; ?>">
-            <?php if (isset($errorMessages['card_expiry'])): ?>
+            <?php if (isset($errorMessages['card_expiry'])) : ?>
                 <small class="text-danger"><?php echo $errorMessages['card_expiry']; ?></small>
             <?php endif; ?>
         </div>
@@ -189,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="form-group">
             <label for="card_cvv">CVV:</label>
             <input type="text" class="form-control" id="card_cvv" name="card_cvv" required value="<?php echo isset($_POST['card_cvv']) ? htmlspecialchars($_POST['card_cvv']) : ''; ?>">
-            <?php if (isset($errorMessages['card_cvv'])): ?>
+            <?php if (isset($errorMessages['card_cvv'])) : ?>
                 <small class="text-danger"><?php echo $errorMessages['card_cvv']; ?></small>
             <?php endif; ?>
         </div>

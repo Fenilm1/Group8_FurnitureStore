@@ -1,8 +1,9 @@
 <?php
 session_start();
-require ('fpdf184/fpdf.php'); // Ensure this path is correct
+require('fpdf184/fpdf.php');
 include_once 'classes/Database.php';
 include_once 'classes/Product.php';
+include_once 'classes/Order.php';
 
 // Redirect to login if not logged in
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
@@ -10,6 +11,15 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     exit();
 }
 
+$database = new Database();
+$db = $database->getConnection();
+$order = new Order($db);
+$product = new Product($db);
+
+$orderId = $_SESSION['order'];
+
+$orderDetails = $order->getOrderById($orderId);
+$orderItems = $order->getOrderItems($orderId);
 
 class PDF extends FPDF
 {
@@ -70,7 +80,6 @@ class PDF extends FPDF
         // Closing line
         $this->Cell(array_sum($w), 0, '', 'T');
     }
-
 }
 
 // Fetch user details from the database
@@ -125,16 +134,15 @@ $data = [];
 $totalPrice = 0;
 $product = new Product($db);
 
-foreach ($_SESSION['cart'] as $productId => $quantity) {
-    $product->id = $productId;
-    $productDetails = $product->getProductById($productId);
-    $itemTotal = $productDetails['price'] * $quantity;
+foreach ($orderItems as $item) {
+    $productDetails = $product->getProductById($item['product_id']);
+    $itemTotal = $item['price'] * $item['quantity'];
     $totalPrice += $itemTotal;
 
     $data[] = array(
         htmlspecialchars($productDetails['name']),
-        $quantity,
-        '$' . number_format($productDetails['price'], 2),
+        $item['quantity'],
+        '$' . number_format($item['price'], 2),
         '$' . number_format($itemTotal, 2)
     );
 }
@@ -153,7 +161,6 @@ $pdf->Ln(20);
 $pdf->SetFont('Arial', 'I', 12);
 $pdf->Cell(0, 10, 'Thank you for your business!', 0, 1, 'C');
 
-$pdf->Output('I', 'invoice.pdf'); // Output to the browser
+$pdf->Output('I', 'invoice.pdf');
 
 session_destroy();
-?>
