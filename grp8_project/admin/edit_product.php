@@ -38,8 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 ?>
 
-<div class="container">
-    <h1>Edit Product</h1>
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Edit Product</h1>
     <?php if (isset($error)): ?>
         <div class="alert alert-danger"><?php echo $error; ?></div>
     <?php endif; ?>
@@ -61,8 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <label for="stock">Stock:</label>
             <input type="number" class="form-control" id="stock" name="stock" value="<?php echo $productData['stock']; ?>" required>
         </div>
-        <button type="submit" class="btn btn-primary">Update Product</button>
+        <div class="text-right">
+            <button type="submit" class="btn btn-primary">Update Product</button>
+        </div>
     </form>
 </div>
+
 
 <?php include_once '../includes/footer.php'; ?>
