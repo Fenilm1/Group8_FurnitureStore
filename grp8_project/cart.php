@@ -4,42 +4,49 @@ include_once 'includes/header.php';
 include_once 'includes/nav.php';
 include_once 'classes/Database.php';
 include_once 'classes/Product.php';
+include_once 'classes/Cart.php';
 
 $database = new Database();
 $db = $database->getConnection();
 
 $product = new Product($db);
+$cart = new Cart();
 
-// Add product to cart
 if (isset($_GET['add'])) {
     $productId = intval($_GET['add']);
-    if (!isset($_SESSION['cart'])) {
-        $_SESSION['cart'] = array();
-    }
-    if (isset($_SESSION['cart'][$productId])) {
-        $_SESSION['cart'][$productId]++;
-    } else {
-        $_SESSION['cart'][$productId] = 1;
+    $cart->addToCart($productId, 1);
+    header("Location: cart.php");
+    exit();
+}
+
+if (isset($_GET['subtract'])) {
+    $productId = intval($_GET['subtract']);
+    $cartItems = $cart->getCartItems();
+    if (isset($cartItems[$productId])) {
+        if ($cartItems[$productId] > 1) {
+            $cart->updateCart($productId, $cartItems[$productId] - 1);
+        } else {
+            $cart->removeFromCart($productId);
+        }
     }
     header("Location: cart.php");
     exit();
 }
 
-// Remove product from cart
 if (isset($_GET['remove'])) {
     $productId = intval($_GET['remove']);
-    if (isset($_SESSION['cart'][$productId])) {
-        unset($_SESSION['cart'][$productId]);
-    }
+    $cart->removeFromCart($productId);
     header("Location: cart.php");
     exit();
 }
-
 ?>
 
 <div class="container">
     <h1>Your Cart</h1>
-    <?php if (!empty($_SESSION['cart'])): ?>
+    <?php
+    $cartItems = $cart->getCartItems();
+    if (!empty($cartItems)) :
+    ?>
         <table class="table">
             <thead>
                 <tr>
@@ -53,21 +60,24 @@ if (isset($_GET['remove'])) {
             <tbody>
                 <?php
                 $totalPrice = 0;
-                foreach ($_SESSION['cart'] as $productId => $quantity) {
+                foreach ($cartItems as $productId => $quantity) {
                     $product->id = $productId;
-                    $productDetails = $product->getProductById($productId); // Using getProductById to fetch product details
+                    $productDetails = $product->getProductById($productId);
                     if ($productDetails) {
                         $itemTotal = $productDetails['price'] * $quantity;
                         $totalPrice += $itemTotal;
-                        ?>
+                ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($productDetails['name']); ?></td>
-                            <td><?php echo $quantity; ?></td>
+                            <td><?php echo htmlspecialchars($productDetails['name']); ?>
+                                <a href="cart.php?subtract=<?php echo $productId; ?>" class="btn btn-warning <?php echo $quantity <= 1 ? 'disabled' : ''; ?>">-</a>
+                                <?php echo $quantity; ?>
+                                <a href="cart.php?add=<?php echo $productId; ?>" class="btn btn-success <?php echo $quantity >= 10 ? 'disabled' : ''; ?>">+</a>
+                            </td>
                             <td><?php echo '$' . number_format($productDetails['price'], 2); ?></td>
                             <td><?php echo '$' . number_format($itemTotal, 2); ?></td>
                             <td><a href="cart.php?remove=<?php echo $productId; ?>" class="btn btn-danger">Remove</a></td>
                         </tr>
-                        <?php
+                <?php
                     }
                 }
                 ?>
@@ -79,7 +89,7 @@ if (isset($_GET['remove'])) {
             </tbody>
         </table>
         <a href="checkout.php" class="btn btn-primary">Proceed to Checkout</a>
-    <?php else: ?>
+    <?php else : ?>
         <p>Your cart is empty.</p>
     <?php endif; ?>
 </div>
