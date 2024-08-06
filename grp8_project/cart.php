@@ -41,14 +41,14 @@ if (isset($_GET['remove'])) {
 }
 ?>
 
-<div class="container">
-    <h1>Your Cart</h1>
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Your Cart</h1>
     <?php
     $cartItems = $cart->getCartItems();
     if (!empty($cartItems)) :
     ?>
-        <table class="table">
-            <thead>
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
                 <tr>
                     <th>Product</th>
                     <th>Quantity</th>
@@ -68,29 +68,34 @@ if (isset($_GET['remove'])) {
                         $totalPrice += $itemTotal;
                 ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($productDetails['name']); ?>
-                                <a href="cart.php?subtract=<?php echo $productId; ?>" class="btn btn-warning <?php echo $quantity <= 1 ? 'disabled' : ''; ?>">-</a>
-                                <?php echo $quantity; ?>
-                                <a href="cart.php?add=<?php echo $productId; ?>" class="btn btn-success <?php echo $quantity >= 10 ? 'disabled' : ''; ?>">+</a>
+                            <td><?php echo htmlspecialchars($productDetails['name']); ?></td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <a href="cart.php?subtract=<?php echo $productId; ?>" class="btn btn-warning btn-sm mr-2 <?php echo $quantity <= 1 ? 'disabled' : ''; ?>">-</a>
+                                    <?php echo $quantity; ?>
+                                    <a href="cart.php?add=<?php echo $productId; ?>" class="btn btn-success btn-sm ml-2 <?php echo $quantity >= 10 ? 'disabled' : ''; ?>">+</a>
+                                </div>
                             </td>
                             <td><?php echo '$' . number_format($productDetails['price'], 2); ?></td>
                             <td><?php echo '$' . number_format($itemTotal, 2); ?></td>
-                            <td><a href="cart.php?remove=<?php echo $productId; ?>" class="btn btn-danger">Remove</a></td>
+                            <td><a href="cart.php?remove=<?php echo $productId; ?>" class="btn btn-danger btn-sm">Remove</a></td>
                         </tr>
                 <?php
                     }
                 }
                 ?>
                 <tr>
-                    <td colspan="3" align="right">Total Price</td>
-                    <td><?php echo '$' . number_format($totalPrice, 2); ?></td>
+                    <td colspan="3" class="text-right font-weight-bold">Total Price</td>
+                    <td class="font-weight-bold"><?php echo '$' . number_format($totalPrice, 2); ?></td>
                     <td></td>
                 </tr>
             </tbody>
         </table>
-        <a href="checkout.php" class="btn btn-primary">Proceed to Checkout</a>
+        <div class="text-right">
+            <a href="checkout.php" class="btn btn-primary">Proceed to Checkout</a>
+        </div>
     <?php else : ?>
-        <p>Your cart is empty.</p>
+        <p class="text-center">Your cart is empty.</p>
     <?php endif; ?>
 </div>
 
