@@ -8,7 +8,7 @@ class Product {
     public $description;
     public $price;
     public $stock;
-    public $image_url; 
+    public $image_url;
 
     public function __construct($db) {
         $this->conn = $db;

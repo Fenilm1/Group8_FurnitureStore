@@ -3,7 +3,7 @@ class Database {
     private $host = 'localhost';
     private $db_name = 'ecommerce';
     private $username = 'root';
-    private $password = '';
+    private $password = 'Fenil!1234';
     public $conn;
 
     public function getConnection() {
